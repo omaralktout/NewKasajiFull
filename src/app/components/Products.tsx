@@ -348,7 +348,36 @@ const ANIMATIONS: Array<(active: boolean) => React.ReactNode> = [
 // ─────────────────────────────────────────────────────────────────
 //  Animated Gradient Orbs Background
 // ─────────────────────────────────────────────────────────────────
-function AnimatedGradientOrbs({ colors }: { colors: { mesh1: string; mesh2: string; mesh3: string } }) {
+function AnimatedGradientOrbs({ colors, isMobile }: { colors: { mesh1: string; mesh2: string; mesh3: string }; isMobile: boolean }) {
+  if (isMobile) {
+    // Static gradients for mobile (no animation to improve performance)
+    return (
+      <div className="absolute inset-0 overflow-hidden">
+        <div
+          className="absolute rounded-full blur-2xl opacity-30"
+          style={{
+            width: '400px',
+            height: '400px',
+            top: '10%',
+            left: '-10%',
+            background: `radial-gradient(circle, ${colors.mesh1}, transparent 70%)`,
+          }}
+        />
+        <div
+          className="absolute rounded-full blur-2xl opacity-25"
+          style={{
+            width: '350px',
+            height: '350px',
+            bottom: '20%',
+            right: '-10%',
+            background: `radial-gradient(circle, ${colors.mesh2}, transparent 70%)`,
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Animated gradients for desktop
   return (
     <div className="absolute inset-0 overflow-hidden">
       {/* Orb 1 */}
@@ -358,6 +387,7 @@ function AnimatedGradientOrbs({ colors }: { colors: { mesh1: string; mesh2: stri
           width: '600px',
           height: '600px',
           background: `radial-gradient(circle, ${colors.mesh1}, transparent 70%)`,
+          willChange: 'transform',
         }}
         animate={{
           x: ['-10%', '10%', '-10%'],
@@ -375,6 +405,7 @@ function AnimatedGradientOrbs({ colors }: { colors: { mesh1: string; mesh2: stri
           height: '500px',
           background: `radial-gradient(circle, ${colors.mesh2}, transparent 70%)`,
           right: 0,
+          willChange: 'transform',
         }}
         animate={{
           x: ['10%', '-5%', '10%'],
@@ -382,24 +413,6 @@ function AnimatedGradientOrbs({ colors }: { colors: { mesh1: string; mesh2: stri
           scale: [1.1, 1, 1.1],
         }}
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-      />
-
-      {/* Orb 3 */}
-      <motion.div
-        className="absolute rounded-full blur-3xl opacity-25"
-        style={{
-          width: '450px',
-          height: '450px',
-          background: `radial-gradient(circle, ${colors.mesh3}, transparent 70%)`,
-          bottom: 0,
-          left: '50%',
-        }}
-        animate={{
-          x: ['-20%', '20%', '-20%'],
-          y: ['-10%', '-30%', '-10%'],
-          scale: [1, 1.15, 1],
-        }}
-        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
       />
     </div>
   );
@@ -413,11 +426,13 @@ function ProductSection({
   item,
   learnMore,
   isAr,
+  isMobile,
 }: {
   idx: CfgIdx;
   item: { tagline: string; description: string; features: string[] };
   learnMore: string;
   isAr: boolean;
+  isMobile: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-150px" });
@@ -427,16 +442,19 @@ function ProductSection({
     <section
       id={cfg.id}
       ref={ref}
-      className="relative min-h-screen flex items-center justify-center py-24 px-6 lg:px-12 overflow-hidden"
+      className="relative min-h-screen flex items-center justify-center py-16 lg:py-24 px-5 lg:px-12 overflow-hidden"
+      style={{ position: 'relative' }}
     >
       {/* Animated Mesh Gradient Background */}
-      <AnimatedGradientOrbs colors={{ mesh1: cfg.mesh1, mesh2: cfg.mesh2, mesh3: cfg.mesh3 }} />
+      <AnimatedGradientOrbs colors={{ mesh1: cfg.mesh1, mesh2: cfg.mesh2, mesh3: cfg.mesh3 }} isMobile={isMobile} />
 
-      {/* Noise texture overlay */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' /%3E%3C/svg%3E")`,
-        }} />
+      {/* Noise texture overlay - desktop only for better performance */}
+      {!isMobile && (
+        <div className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' /%3E%3C/svg%3E")`,
+          }} />
+      )}
 
       {/* Content */}
       <div className="max-w-7xl mx-auto w-full relative z-10">
@@ -444,34 +462,37 @@ function ProductSection({
 
           {/* Glass Card */}
           <motion.div
-            initial={{ opacity: 0, y: 80, rotateX: 15 }}
-            animate={inView ? { opacity: 1, y: 0, rotateX: 0 } : {}}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-            style={{ perspective: '1000px' }}
+            initial={{ opacity: 0, y: 60 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
             <motion.div
-              whileHover={{ y: -16, scale: 1.02 }}
+              whileHover={isMobile ? undefined : { y: -16, scale: 1.02 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               className="relative group"
             >
-              {/* Outer glow */}
-              <div className="absolute -inset-1 rounded-[32px] opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-700"
-                style={{ background: `linear-gradient(135deg, ${cfg.gradFrom}, ${cfg.gradTo})` }} />
+              {/* Outer glow - desktop only */}
+              {!isMobile && (
+                <motion.div
+                  className="absolute -inset-1 rounded-[32px] blur-xl"
+                  initial={{ opacity: 0 }}
+                  whileHover={{ opacity: 1 }}
+                  transition={{ duration: 0.7 }}
+                  style={{ background: `linear-gradient(135deg, ${cfg.gradFrom}, ${cfg.gradTo})` }}
+                />
+              )}
 
               {/* Glass card */}
               <div
-                className="relative rounded-[28px] p-10 overflow-hidden"
+                className="relative rounded-3xl p-6 lg:p-10 overflow-hidden"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  backdropFilter: 'blur(40px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+                  background: isMobile ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.08)',
+                  backdropFilter: isMobile ? 'blur(20px) saturate(150%)' : 'blur(40px) saturate(180%)',
+                  WebkitBackdropFilter: isMobile ? 'blur(20px) saturate(150%)' : 'blur(40px) saturate(180%)',
                   border: '1px solid rgba(255, 255, 255, 0.18)',
-                  boxShadow: `
-                    0 8px 32px 0 rgba(0, 0, 0, 0.12),
-                    0 30px 60px -12px rgba(0, 0, 0, 0.25),
-                    inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
-                    inset 0 -1px 0 0 rgba(255, 255, 255, 0.1)
-                  `,
+                  boxShadow: isMobile
+                    ? `0 8px 24px 0 rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)`
+                    : `0 8px 32px 0 rgba(0, 0, 0, 0.12), 0 30px 60px -12px rgba(0, 0, 0, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.3), inset 0 -1px 0 0 rgba(255, 255, 255, 0.1)`,
                 }}
               >
                 {/* Top light reflection */}
@@ -480,53 +501,73 @@ function ProductSection({
                     background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
                   }} />
 
-                {/* Corner reflection */}
-                <div className="absolute top-0 left-0 w-32 h-32 rounded-full blur-2xl opacity-30 pointer-events-none"
-                  style={{ background: 'rgba(255, 255, 255, 0.3)' }} />
+                {/* Corner reflection - desktop only */}
+                {!isMobile && (
+                  <motion.div
+                    className="absolute top-0 left-0 w-32 h-32 rounded-full blur-2xl pointer-events-none"
+                    initial={{ opacity: 0.3 }}
+                    animate={{ opacity: 0.3 }}
+                    style={{ background: 'rgba(255, 255, 255, 0.3)' }}
+                  />
+                )}
 
                 {/* Content */}
                 <div className="relative z-10">
                   {ANIMATIONS[idx](inView)}
                 </div>
 
-                {/* Bottom reflection */}
-                <div className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
-                  style={{
-                    background: 'linear-gradient(to top, rgba(255,255,255,0.05), transparent)',
-                  }} />
+                {/* Bottom reflection - desktop only */}
+                {!isMobile && (
+                  <motion.div
+                    className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
+                    initial={{ opacity: 1 }}
+                    animate={{ opacity: 1 }}
+                    style={{
+                      background: 'linear-gradient(to top, rgba(255,255,255,0.05), transparent)',
+                    }}
+                  />
+                )}
               </div>
             </motion.div>
           </motion.div>
 
           {/* Text Content */}
           <motion.div
-            initial={{ opacity: 0, x: 60 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0, y: 40 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             {/* Number Badge */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={inView ? { opacity: 1, scale: 1 } : {}}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="inline-flex items-center gap-4 mb-8"
+              className="inline-flex items-center gap-3 lg:gap-4 mb-6 lg:mb-8"
             >
               <div className="relative">
-                <div className="absolute inset-0 blur-xl opacity-60"
-                  style={{ background: `linear-gradient(135deg, ${cfg.gradFrom}, ${cfg.gradTo})` }} />
-                <div className="relative w-20 h-20 rounded-2xl flex items-center justify-center"
+                {!isMobile && (
+                  <motion.div
+                    className="absolute inset-0 blur-xl"
+                    initial={{ opacity: 0.6 }}
+                    animate={{ opacity: 0.6 }}
+                    style={{ background: `linear-gradient(135deg, ${cfg.gradFrom}, ${cfg.gradTo})` }}
+                  />
+                )}
+                <div className="relative w-14 h-14 lg:w-20 lg:h-20 rounded-xl lg:rounded-2xl flex items-center justify-center"
                   style={{
                     background: `linear-gradient(135deg, ${cfg.gradFrom}, ${cfg.gradTo})`,
-                    boxShadow: `0 12px 40px -8px ${cfg.accent}60`,
+                    boxShadow: `0 8px 24px -8px ${cfg.accent}60`,
                   }}>
-                  <cfg.Icon className="w-10 h-10 text-white" strokeWidth={2} />
+                  <cfg.Icon className="w-7 h-7 lg:w-10 lg:h-10 text-white" strokeWidth={2} />
                 </div>
               </div>
-              <div>
-                <div className="text-8xl font-black text-white/10 leading-none" style={{ fontFamily: 'system-ui' }}>
-                  0{idx + 1}
+              {!isMobile && (
+                <div>
+                  <div className="text-6xl lg:text-8xl font-black text-white/10 leading-none" style={{ fontFamily: 'system-ui' }}>
+                    0{idx + 1}
+                  </div>
                 </div>
-              </div>
+              )}
             </motion.div>
 
             {/* Product name */}
@@ -534,15 +575,15 @@ function ProductSection({
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="inline-flex items-center gap-3 px-4 py-2 rounded-full mb-6"
+              className="inline-flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-1.5 lg:py-2 rounded-full mb-5 lg:mb-6"
               style={{
-                background: 'rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(20px)',
+                background: isMobile ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: isMobile ? 'blur(10px)' : 'blur(20px)',
                 border: '1px solid rgba(255, 255, 255, 0.2)',
               }}
             >
-              <Sparkles className="w-4 h-4" style={{ color: cfg.accent }} strokeWidth={2.5} />
-              <span className="text-sm font-bold tracking-wide" style={{ color: cfg.accent }}>
+              <Sparkles className="w-3.5 h-3.5 lg:w-4 lg:h-4" style={{ color: cfg.accent }} strokeWidth={2.5} />
+              <span className="text-xs lg:text-sm font-bold tracking-wide" style={{ color: cfg.accent }}>
                 {cfg.name}
               </span>
             </motion.div>
@@ -552,7 +593,7 @@ function ProductSection({
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.7, delay: 0.5 }}
-              className="text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight mb-6 leading-[1.1]"
+              className="text-3xl sm:text-4xl lg:text-6xl xl:text-7xl font-black tracking-tight mb-4 lg:mb-6 leading-[1.15] lg:leading-[1.1]"
               style={{
                 background: `linear-gradient(135deg, #1e293b 0%, #475569 100%)`,
                 WebkitBackgroundClip: 'text',
@@ -568,7 +609,7 @@ function ProductSection({
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.7, delay: 0.6 }}
-              className="text-slate-700 text-xl leading-relaxed mb-10"
+              className="text-slate-700 text-base lg:text-xl leading-relaxed mb-8 lg:mb-10"
               style={{ fontWeight: 500 }}
             >
               {item.description}
@@ -579,29 +620,35 @@ function ProductSection({
               initial={{ opacity: 0 }}
               animate={inView ? { opacity: 1 } : {}}
               transition={{ duration: 0.7, delay: 0.7 }}
-              className="space-y-4 mb-12"
+              className="space-y-3 lg:space-y-4 mb-8 lg:mb-12"
             >
               {item.features.map((feat, fi) => (
                 <motion.div
                   key={fi}
-                  initial={{ opacity: 0, x: -30 }}
+                  initial={{ opacity: 0, x: -20 }}
                   animate={inView ? { opacity: 1, x: 0 } : {}}
                   transition={{ duration: 0.6, delay: 0.8 + fi * 0.1 }}
-                  className="flex items-start gap-4"
+                  className="flex items-start gap-3 lg:gap-4"
                 >
-                  <div className="relative mt-1">
-                    <div className="absolute inset-0 rounded-full blur-md"
-                      style={{ background: cfg.accent, opacity: 0.4 }} />
-                    <div className="relative w-6 h-6 rounded-full flex items-center justify-center"
+                  <div className="relative mt-0.5 lg:mt-1">
+                    {!isMobile && (
+                      <motion.div
+                        className="absolute inset-0 rounded-full blur-md"
+                        initial={{ opacity: 0.4 }}
+                        animate={{ opacity: 0.4 }}
+                        style={{ background: cfg.accent }}
+                      />
+                    )}
+                    <div className="relative w-5 h-5 lg:w-6 lg:h-6 rounded-full flex items-center justify-center"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.15)',
-                        backdropFilter: 'blur(10px)',
-                        border: `1.5px solid ${cfg.accent}80`,
+                        background: isMobile ? `${cfg.accent}20` : 'rgba(255, 255, 255, 0.15)',
+                        backdropFilter: isMobile ? 'none' : 'blur(10px)',
+                        border: `1.5px solid ${cfg.accent}${isMobile ? '' : '80'}`,
                       }}>
-                      <Check className="w-3.5 h-3.5" style={{ color: cfg.accent }} strokeWidth={3} />
+                      <Check className="w-3 h-3 lg:w-3.5 lg:h-3.5" style={{ color: cfg.accent }} strokeWidth={3} />
                     </div>
                   </div>
-                  <span className="text-slate-700 text-lg font-medium flex-1">
+                  <span className="text-slate-700 text-base lg:text-lg font-medium flex-1">
                     {feat}
                   </span>
                 </motion.div>
@@ -615,21 +662,33 @@ function ProductSection({
               transition={{ duration: 0.7, delay: 1.1 }}
             >
               <motion.button
-                whileHover={{ scale: 1.05, y: -4 }}
+                whileHover={isMobile ? undefined : { scale: 1.05, y: -4 }}
                 whileTap={{ scale: 0.95 }}
-                className="group relative inline-flex items-center gap-3 px-10 py-5 rounded-2xl text-white font-semibold text-lg overflow-hidden"
+                className="group relative inline-flex items-center gap-2.5 lg:gap-3 px-7 py-3.5 lg:px-10 lg:py-5 rounded-xl lg:rounded-2xl text-white font-semibold text-base lg:text-lg overflow-hidden"
                 style={{
                   background: `linear-gradient(135deg, ${cfg.gradFrom}, ${cfg.gradTo})`,
-                  boxShadow: `0 20px 50px -12px ${cfg.accent}60, 0 8px 16px -8px rgba(0,0,0,0.3)`,
+                  boxShadow: `0 12px 32px -12px ${cfg.accent}60, 0 4px 12px -4px rgba(0,0,0,0.2)`,
                 }}
               >
-                {/* Shine effect */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                </div>
+                {/* Shine effect - desktop only */}
+                {!isMobile && (
+                  <motion.div
+                    className="absolute inset-0"
+                    initial={{ opacity: 0 }}
+                    whileHover={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                      initial={{ x: '-100%' }}
+                      whileHover={{ x: '100%' }}
+                      transition={{ duration: 1 }}
+                    />
+                  </motion.div>
+                )}
 
                 <span className="relative">{learnMore}</span>
-                <ArrowUpRight className="relative w-6 h-6 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" strokeWidth={2.5} />
+                <ArrowUpRight className="relative w-5 h-5 lg:w-6 lg:h-6 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" strokeWidth={2.5} />
               </motion.button>
             </motion.div>
           </motion.div>
@@ -645,6 +704,7 @@ function ProductSection({
 // ─────────────────────────────────────────────────────────────────
 export function Products() {
   const { T, isAr } = useLang();
+  const isMobile = useIsMobile();
 
   return (
     <div className="relative" style={{ background: '#f8fafc' }}>
@@ -655,6 +715,7 @@ export function Products() {
           item={T.products.items[i]}
           learnMore={T.products.learnMore}
           isAr={isAr}
+          isMobile={isMobile}
         />
       ))}
     </div>
